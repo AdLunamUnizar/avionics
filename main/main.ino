@@ -1,19 +1,3 @@
-/*
-  Arduino BMI270_BMM150 - Simple Accelerometer
-
-  This example reads the acceleration values from the BMI270_BMM150
-  sensor and continuously prints them to the Serial Monitor
-  or Serial Plotter.
-
-  The circuit:
-  - Arduino Nano 33 BLE Sense Rev2
-
-  created 10 Jul 2019
-  by Riccardo Rizzo
-
-  This example code is in the public domain.
-*/
-
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_LPS22HB.h"
 
