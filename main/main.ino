@@ -15,31 +15,25 @@ float initialPressure, currentPressure;
 void setup()
 {
   Serial.begin(9600);
-  while (!Serial)
-    ;
+  while (!Serial);
   Serial.println("Started");
 
   if (!IMU.begin())
   {
     Serial.println("Failed to initialize IMU!");
-    while (1)
-      ;
-  }
-  
-  if (!BARO.begin()) {
-
-    Serial.println("Failed to initialize pressure sensor!");
-
     while (1);
-
   }
-
-  initialPressure = BARO.readPressure(MILLIBAR);
-  
 
   Serial.print("Accelerometer sample rate = ");
   Serial.print(IMU.accelerationSampleRate());
   Serial.println(" Hz");
+  
+  if (!BARO.begin()) {
+    Serial.println("Failed to initialize pressure sensor!");
+    while (1);
+  }
+
+  initialPressure = BARO.readPressure(MILLIBAR);
 }
 
 int isFalling() {
@@ -51,12 +45,10 @@ int isFalling() {
   return 1;
 }
 
-void loop()
-{
+void loop() {
   float x, y, z;
 
-  if (IMU.accelerationAvailable())
-  {
+  if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(x, y, z);
 
     /*Serial.print("x: ");
@@ -67,15 +59,20 @@ void loop()
     Serial.print(z);
     Serial.println();*/
     //Serial.println(z);
+
+
+    // Store acceleration in array
     accArray[idx] = z;
+
+    // Increment index
+    idx++;
     if (idx == 5) {
       idx = 0;
-    } else {
-      idx++;
     }
+
     if (isFalling()) {
       //Serial.println("Cayendo!!");
-    }else {
+    } else {
       //Serial.println("Subiendo!!");
     }
   }
@@ -87,11 +84,8 @@ void loop()
 
   if (hasLiftedOff) {
     Serial.println("Estamos volando!!");
-    } else {
+  } else {
       Serial.println("No hemos despegado aun");}
-
-
-  // print an empty line
 
   Serial.println();
   delay(1000);
