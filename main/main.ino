@@ -1,92 +1,118 @@
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_LPS22HB.h"
 
-float x, y, z;
-int degreesX = 0;
-int degreesY = 0;
+#define pressureThreshold 2.5 // 2.5 millibar equals 20 meters of air aprox
 
-// Acceleration array
+// Acceleration measurements
+float x, y, z;
 float accArray[] = {0, 0, 0, 0, 0};
 int idx = 0;
 
-int hasLiftedOff = 0;
+// Pressure measurements
 float initialPressure, currentPressure;
+
+// Rocket status
+bool hasLiftedOff = false;
 
 void setup()
 {
   Serial.begin(9600);
-  while (!Serial);
+  // Comment this loop when testing without computer
+  while (!Serial)
+    ;
   Serial.println("Started");
 
+  // Start IMU
   if (!IMU.begin())
   {
     Serial.println("Failed to initialize IMU!");
-    while (1);
+    while (1)
+      ;
   }
-
   Serial.print("Accelerometer sample rate = ");
   Serial.print(IMU.accelerationSampleRate());
   Serial.println(" Hz");
-  
-  if (!BARO.begin()) {
+
+  // Start BARO
+  if (!BARO.begin())
+  {
     Serial.println("Failed to initialize pressure sensor!");
-    while (1);
+    while (1)
+      ;
   }
 
+  // Read initial pressure
   initialPressure = BARO.readPressure(MILLIBAR);
 }
 
-int isFalling() {
-  for (int i = 0; i < 5; i++) {
-    if (accArray[i] > -0.3) {
+int isFalling()
+{
+  // Check if all values are negative
+  /*for (int i = 0; i < 5; i++)
+  {
+    if (accArray[i] > -0.3)
+    {
       return 0;
     }
   }
-  return 1;
+  return 1;*/
+
+  // Average acceleration
+  int sum = 0;
+  for (int i = 0; i < 5; i++)
+  {
+    sum += accArray[i];
+  }
+  // Check 0.2 value
+  // Check if average acceleration is less than -0.2g
+  if (sum / 5 < -0.2)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 
-void loop() {
-  float x, y, z;
-
-  if (IMU.accelerationAvailable()) {
+void loop()
+{
+  if (IMU.accelerationAvailable())
+  {
+    // Read acceleration in 3 axis
     IMU.readAcceleration(x, y, z);
-
-    /*Serial.print("x: ");
-    Serial.print(x);
-    Serial.print(" y: ");
-    Serial.print(y);
-    Serial.print(" z: ");
-    Serial.print(z);
-    Serial.println();*/
-    //Serial.println(z);
-
+    Serial.print("Aceleración Y:");
+    Serial.println(y);
 
     // Store acceleration in array
-    accArray[idx] = z;
+    accArray[idx] = y;
 
     // Increment index
     idx++;
-    if (idx == 5) {
+    if (idx == 5)
+    {
       idx = 0;
     }
 
-    if (isFalling()) {
-      //Serial.println("Cayendo!!");
-    } else {
-      //Serial.println("Subiendo!!");
+    if (isFalling() && hasLiftedOff)
+    {
+      Serial.println("Desplegamos paracaídas!!");
+    }
+    else
+    {
+      Serial.println("Subiendo o no hemos despegado");
     }
   }
 
   currentPressure = BARO.readPressure(MILLIBAR);
-  if (!hasLiftedOff && (initialPressure - currentPressure) > 1) {
-    hasLiftedOff = 1;
+  Serial.print("Presión: ");
+  Serial.println(currentPressure);
+
+  // If we haven't already lifted off and there's a change in pressure greater than pressureThreshold
+  if (!hasLiftedOff && (initialPressure - currentPressure) > pressureThreshold)
+  {
+    // We've lifted off!
+    hasLiftedOff = true;
   }
-
-  if (hasLiftedOff) {
-    Serial.println("Estamos volando!!");
-  } else {
-      Serial.println("No hemos despegado aun");}
-
-  Serial.println();
-  delay(1000);
+  delay(300);
 }
