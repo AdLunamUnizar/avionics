@@ -61,11 +61,18 @@ void setup()
 bool isFalling()
 {
   if (currentAltitude > lastAltitude) {
-    // El cohete está ascendiendo
+    // The rocket is ascending
     monotonousChanges = 0;
-  } else if (altitude < lastAltitude) {
-    // El cohete está descendiendo
+  } else if (currentAltitude < lastAltitude) {
+    // The rocket is descending
+
+    Serial.println("Se detecta cambio de monotonía");
+
     monotonousChanges++;
+    
+    Serial.print("Cambios de monotonía: ");
+    Serial.println(monotonousChanges);
+
     if (monotonousChanges == 3 && hasLiftedOff) {
       /*At least 3 consecutive changes in monotonicity have occurred, the rocket
        *has reached its apogee and started descending.
