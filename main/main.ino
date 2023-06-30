@@ -1,27 +1,34 @@
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_LPS22HB.h"
 
-#define pressureThreshold 2.5 // 2.5 millibar equals 20 meters of air aprox
+#define minAltitudeToDeployParachute 20 // 20 meters minimum to deploy parachute
 
+// GLOBAL VARIABLES ------------------------------------------------------------
 // Acceleration measurements
-float x, y, z;
-float accArray[] = {0, 0, 0, 0, 0};
-int idx = 0;
+// float x, y, z;
 
 // Pressure measurements
-float initialPressure, currentPressure;
+float initialAltitude = 0.0f, lastAltitude = 0.0f, currentAltitude = 0.0f;
+
+// Monotonous changes in altitude
+int monotonousChanges = 0;
 
 // Rocket status
 bool hasLiftedOff = false;
+// END GLOBAL VARIABLES --------------------------------------------------------
 
+// Function to setup the serial port, IMU and barometer
 void setup()
 {
+  // Inicialization of serial port
   Serial.begin(9600);
   // Comment this loop when testing without computer
   while (!Serial)
     ;
   Serial.println("Started");
 
+  // Uncomment this code if you want to use the IMU
+  /*
   // Start IMU
   if (!IMU.begin())
   {
@@ -32,8 +39,9 @@ void setup()
   Serial.print("Accelerometer sample rate = ");
   Serial.print(IMU.accelerationSampleRate());
   Serial.println(" Hz");
+  */
 
-  // Start BARO
+  // Start barometer
   if (!BARO.begin())
   {
     Serial.println("Failed to initialize pressure sensor!");
@@ -41,78 +49,86 @@ void setup()
       ;
   }
 
+  /* TODO: Calibrate barometer to get initial altitude
+   * DONE NOW: Basic inicialization of pressure sensor
+   */
   // Read initial pressure
-  initialPressure = BARO.readPressure(MILLIBAR);
+  float currentPressure = BARO.readPressure();
+  initialAltitude = 44330 * ( 1 - pow(currentPressure/101.325, 1/5.255) );
 }
 
-int isFalling()
+// Function to check if the rocket is falling
+bool isFalling()
 {
-  // Check if all values are negative
-  /*for (int i = 0; i < 5; i++)
-  {
-    if (accArray[i] > -0.3)
-    {
-      return 0;
+  if (currentAltitude > lastAltitude) {
+    // El cohete está ascendiendo
+    monotonousChanges = 0;
+  } else if (altitude < lastAltitude) {
+    // El cohete está descendiendo
+    monotonousChanges++;
+    if (monotonousChanges == 3 && hasLiftedOff) {
+      /*At least 3 consecutive changes in monotonicity have occurred, the rocket
+       *has reached its apogee and started descending.
+       */
+      Serial.println("Cohete descendiendo");
+      return true;
     }
   }
-  return 1;*/
+  return false;
+}
 
-  // Average acceleration
-  int sum = 0;
-  for (int i = 0; i < 5; i++)
-  {
-    sum += accArray[i];
+// Function to continue sending telemetry after deploying the parachute
+void continueTelemetry()
+{
+  while(true){
+    // TODO: send data of sensors to ground station or store in memory
   }
-  // Check 0.2 value
-  // Check if average acceleration is less than -0.2g
-  if (sum / 5 < -0.2)
+}
+
+// Function to deploy the parachute
+void checkDeployParachute()
+{
+  if (isFalling() && hasLiftedOff)
   {
-    return true;
+    Serial.println("Desplegamos paracaídas!!");
+    // TODO: Poner pin a HIGH para desplegar paracaídas
+
+    continueTelemetry();
   }
   else
   {
-    return false;
+    Serial.println("Subiendo o no hemos despegado");
   }
 }
 
-void loop()
+// Function to check the altitude and store it for checking if the rocket is falling
+void checkAltitude()
 {
-  if (IMU.accelerationAvailable())
-  {
-    // Read acceleration in 3 axis
-    IMU.readAcceleration(x, y, z);
-    Serial.print("Aceleración Y:");
-    Serial.println(y);
-
-    // Store acceleration in array
-    accArray[idx] = y;
-
-    // Increment index
-    idx++;
-    if (idx == 5)
-    {
-      idx = 0;
-    }
-
-    if (isFalling() && hasLiftedOff)
-    {
-      Serial.println("Desplegamos paracaídas!!");
-    }
-    else
-    {
-      Serial.println("Subiendo o no hemos despegado");
-    }
-  }
-
-  currentPressure = BARO.readPressure(MILLIBAR);
-  Serial.print("Presión: ");
+  // Read pressure (kPa)
+  float currentPressure = BARO.readPressure();
+  Serial.print("Presión (kPa): ");
   Serial.println(currentPressure);
 
-  // If we haven't already lifted off and there's a change in pressure greater than pressureThreshold
-  if (!hasLiftedOff && (initialPressure - currentPressure) > pressureThreshold)
-  {
-    // We've lifted off!
+  // Update last altitude
+  lastAltitude = currentAltitude;
+
+  // Convert pressure to meters
+  currentAltitude = 44330 * ( 1 - pow(currentPressure/101.325, 1/5.255) );
+
+  // Check if the rocket has lifted off
+  if(!hasLiftedOff && (currentAltitude - initialAltitude) > minAltitudeToDeployParachute){
     hasLiftedOff = true;
   }
+}
+
+// Main function
+void loop()
+{
+  checkAltitude();
+
+  checkDeployParachute();
+
+  // Delay to avoid overloading the serial port
+  // TODO: minimize delay
   delay(300);
 }
