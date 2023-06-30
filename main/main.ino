@@ -121,6 +121,8 @@ void checkAltitude()
 
   // Convert pressure to meters
   currentAltitude = 44330 * ( 1 - pow(currentPressure/101.325, 1/5.255) );
+  Serial.print("Altitud (m): ");
+  Serial.println(currentAltitude);
 
   // Check if the rocket has lifted off
   if(!hasLiftedOff && (currentAltitude - initialAltitude) > minAltitudeToDeployParachute){
