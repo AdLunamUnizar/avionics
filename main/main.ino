@@ -145,7 +145,7 @@ void checkAltitude()
   Serial.println(currentAltitude);
 
   // Check if the rocket has lifted off
-  if(!hasLiftedOff && (currentAltitude - initialAltitude) > minAltitudeToDeployParachute){
+  if(!hasLiftedOff && (currentAltitude > minAltitudeToDeployParachute){
     hasLiftedOff = true;
   }
 }
