@@ -9,6 +9,7 @@
 
 // Pressure measurements
 float initialAltitude = 0.0f, lastAltitude = 0.0f, currentAltitude = 0.0f;
+float initialPressure = 0.0f;
 
 // Monotonous changes in altitude
 int monotonousChanges = 0;
@@ -49,12 +50,31 @@ void setup()
       ;
   }
 
-  /* TODO: Calibrate barometer to get initial altitude
-   * DONE NOW: Basic inicialization of pressure sensor
+  /* Calibrate barometer to get initial altitude
    */
-  // Read initial pressure
-  float currentPressure = BARO.readPressure();
-  initialAltitude = 44330 * ( 1 - pow(currentPressure/101.325, 1/5.255) );
+  // Calibrate barometer with parameter received via serial port
+  bool calibrated = false;
+
+  // Loop until the barometer is calibrated
+  while(!calibrated){
+    Serial.println("Calibrating barometer...");
+    String msg = Serial.readString();
+    // String msg = "Initial _Altitude:X.XX";
+    if (msg.startsWith("Initial _Altitude:"))
+    {
+      initialAltitude = msg.substring(18).toFloat();
+      Serial.print("Initial altitude: ");
+      Serial.println(initialAltitude);
+      // Exit loop
+      calibrated = true;
+    }
+    else
+    {
+      Serial.println("Bad command - Initial altitude not set");
+    }
+  }
+  
+  initialPressure = BARO.readPressure();
 }
 
 // Function to check if the rocket is falling
@@ -120,8 +140,8 @@ void checkAltitude()
   lastAltitude = currentAltitude;
 
   // Convert pressure to meters
-  currentAltitude = 44330 * ( 1 - pow(currentPressure/101.325, 1/5.255) );
-  Serial.print("Altitud (m): ");
+  currentAltitude = 44330 * ( 1 - pow(currentPressure/initialPressure, 1/5.255) );
+  Serial.print("Altitud relativa (m): ");
   Serial.println(currentAltitude);
 
   // Check if the rocket has lifted off
