@@ -1,7 +1,7 @@
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_LPS22HB.h"
 
-#define minAltitudeToDeployParachute 20 // 20 meters minimum to deploy parachute
+#define minAltitudeToDeployParachute 1 // 20 meters minimum to deploy parachute
 
 // GLOBAL VARIABLES ------------------------------------------------------------
 // Acceleration measurements
@@ -56,7 +56,7 @@ void setup()
   bool calibrated = false;
 
   // Loop until the barometer is calibrated
-  while(!calibrated){
+  /*while(!calibrated){
     Serial.println("Calibrating barometer...");
     String msg = Serial.readString();
     // String msg = "Initial _Altitude:X.XX";
@@ -72,8 +72,9 @@ void setup()
     {
       Serial.println("Bad command - Initial altitude not set");
     }
-  }
-  
+  }*/
+
+  initialAltitude = 180.0f; // Remove
   initialPressure = BARO.readPressure();
 }
 
@@ -145,7 +146,7 @@ void checkAltitude()
   Serial.println(currentAltitude);
 
   // Check if the rocket has lifted off
-  if(!hasLiftedOff && (currentAltitude > minAltitudeToDeployParachute){
+  if(!hasLiftedOff && (currentAltitude > minAltitudeToDeployParachute)) {
     hasLiftedOff = true;
   }
 }

@@ -13,6 +13,7 @@ for onePort in ports:
     print(str(onePort))
 
 val = input("Select port: COM")
+portVal = ""
 
 for x in range(0, len(portsList)):
     if portsList[x].startswith("COM" + str(val)):
