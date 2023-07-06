@@ -1,8 +1,6 @@
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_LPS22HB.h"
 
-// Hola
-
 #define minAltitudeToDeployParachute 1 // 20 meters minimum to deploy parachute
 
 // GLOBAL VARIABLES ------------------------------------------------------------
