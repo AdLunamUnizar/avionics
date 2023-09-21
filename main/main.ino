@@ -12,7 +12,8 @@
 int addr = 0; // Memory address where the data start to be stored
 
 // Acceleration measurements
-// float x, y, z;
+float Ax = 0.0f, Ay = 0.0f, Az = 0.0f;
+
 bool warningF;
 bool errorF;
 
@@ -27,8 +28,8 @@ int monotonousChanges = 0;
 bool hasLiftedOff = false;
 
 // Time
-unsigned long startTime;
-unsigned long currentTime;
+unsigned long startTime = 0;
+unsigned long currentTime = 0;
 unsigned long timerLimit = 11000; // 11 seconds limit to deploy parachute
 // END GLOBAL VARIABLES --------------------------------------------------------
 
@@ -124,23 +125,6 @@ void setup()
   //initialAltitude = 180.0f; // Remove
   initialPressure = BARO.readPressure();
   // ##########################################
-  
-  // Wait until acceleration is > 50m/s^2 aprox
-  bool exit = false;
-  float Ax = 0.0f, Ay = 0.0f, Az = 0.0f;
-  while(!exit){
-    if (IMU.accelerationAvailable()) {
-      IMU.readAcceleration(Ax, Ay, Az);
-      if (Ay > 5.0f){
-        exit = true;
-        startTime = millis();
-      }
-    } else {
-      Serial.println("#ERROR: Accelerometer not available!");
-      errorF = true;
-    }
-  }
-  delay(100);
 }
 
 // Function to check if the rocket is falling
@@ -177,7 +161,6 @@ void checkTelemetry()
   float pressure;
   float temperatureBARO;
   float Gx, Gy, Gz;
-  float Ax, Ay, Az;
   float Mx, My, Mz;
   float temperature;
   float humidity;
@@ -302,8 +285,21 @@ void loop()
 
   checkTelemetry();
 
+  // Wait until acceleration is > 50m/s^2 aprox
+  if(startTime == 0){
+    if (IMU.accelerationAvailable()) {
+      IMU.readAcceleration(Ax, Ay, Az);
+      if (Ay > 5.0f){
+        startTime = millis();
+      }
+    } else {
+      Serial.println("#ERROR: Accelerometer not available!");
+      errorF = true;
+    }
+  }
+
   currentTime = millis();
-  if (currentTime - startTime > timerLimit){
+  if ((currentTime - startTime) > timerLimit && startTime != 0){
     Serial.println("Desplegamos paracaídas por timer!!");
     // Activate alert sound 
     digitalWrite(alertPin, HIGH);
