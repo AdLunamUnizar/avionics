@@ -4,9 +4,9 @@
 #include <Arduino_LPS22HB.h>        //  LPS22HB - Read Pressure and Barometer temperature.
 #include <Arduino_HS300x.h>         //  HS300x - Read Sensors (Temp. Humidity).
 
-#define minAltitudeToDeployParachute 20 // 20 meters minimum to deploy parachute
-#define parachutePin 4
-#define alertPin 5
+#define minAltitudeToDeployParachute 2 // 20 meters minimum to deploy parachute
+#define parachutePin 5
+//#define alertPin 5
 
 // GLOBAL VARIABLES ------------------------------------------------------------
 int addr = 0; // Memory address where the data start to be stored
@@ -33,92 +33,92 @@ unsigned long currentTime = 0;
 unsigned long timerLimit = 11000; // 11 seconds limit to deploy parachute
 // END GLOBAL VARIABLES --------------------------------------------------------
 
-// TODO: comprobar que el serial está disponible es necesario?
+// TODO: comprobar que el Serial1 está disponible es necesario?
 
-// Function to setup the serial port, IMU and barometer
+// Function to setup the Serial1 port, IMU and barometer
 void setup()
-{  
-  digitalWrite(parachutePin, LOW);
-  digitalWrite(alertPin, LOW);
-  // Configurate pins 4 and 5 as output
+{
   pinMode(parachutePin, OUTPUT);
-  pinMode(alertPin, OUTPUT);
+  //pinMode(alertPin, OUTPUT);
+  digitalWrite(parachutePin, LOW);
+  //digitalWrite(alertPin, LOW);
+  // Configurate pins 4 and 5 as output
 
   warningF = false;
   errorF = false;
   
-  // Inicialization of serial port
-  Serial.begin(9600);
+  // Inicialization of Serial1 port
+  Serial1.begin(9600);
   // Comment this loop when testing without computer
-  while (!Serial)
+  while (!Serial1)
     ;
-  Serial.println("#INFO: Serial Port Started.");
+  Serial1.println("#INFO: Serial1 Port Started.");
 
   // ############# Initialize sensors ###########
   if (!BARO.begin()) {
-    Serial.println("#ERROR: Failed to initialize pressure sensor!");
+    Serial1.println("#ERROR: Failed to initialize pressure sensor!");
     while (1)
       ;
   }
 
   if (!IMU.begin()) {
-    Serial.println("#ERROR: Failed to initialize IMU!");
+    Serial1.println("#ERROR: Failed to initialize IMU!");
     errorF = true;
     while (1)
       ;
   }
 
   if (!HS300x.begin()) {
-    Serial.println("#WARNING: Failed to initialize humidity temperature sensor!");
+    Serial1.println("#WARNING: Failed to initialize humidity temperature sensor!");
     warningF = true;
     while (1)
       ;
   }
 
-  Serial.print("#INFO: Gyroscope sample rate = ");
-  Serial.print(IMU.gyroscopeSampleRate());
-  Serial.println(" Hz");
-  Serial.println();
-  Serial.println("#INFO: Gyroscope in degrees/second");
-  Serial.println("X\tY\tZ");
+  Serial1.print("#INFO: Gyroscope sample rate = ");
+  Serial1.print(IMU.gyroscopeSampleRate());
+  Serial1.println(" Hz");
+  Serial1.println();
+  Serial1.println("#INFO: Gyroscope in degrees/second");
+  Serial1.println("X\tY\tZ");
 
-  Serial.print("#INFO: Accelerometer sample rate = ");
-  Serial.print(IMU.accelerationSampleRate());
-  Serial.println(" Hz");
-  Serial.println();
-  Serial.println("#INFO: Acceleration in G's");
-  Serial.println("X\tY\tZ");
+  Serial1.print("#INFO: Accelerometer sample rate = ");
+  Serial1.print(IMU.accelerationSampleRate());
+  Serial1.println(" Hz");
+  Serial1.println();
+  Serial1.println("#INFO: Acceleration in G's");
+  Serial1.println("X\tY\tZ");
 
-  Serial.print("#INFO: Magnetic field sample rate = ");
-  Serial.print(IMU.magneticFieldSampleRate());
-  Serial.println(" Hz");
-  Serial.println();
-  Serial.println("#INFO: Magnetic Field in uT");
-  Serial.println("X\tY\tZ");
+  Serial1.print("#INFO: Magnetic field sample rate = ");
+  Serial1.print(IMU.magneticFieldSampleRate());
+  Serial1.println(" Hz");
+  Serial1.println();
+  Serial1.println("#INFO: Magnetic Field in uT");
+  Serial1.println("X\tY\tZ");
 
   // ##########################################
 
   /* Calibrate barometer to get initial altitude
    */
-  // Calibrate barometer with parameter received via serial port
+  // Calibrate barometer with parameter received via Serial1 port
   bool calibrated = false;
 
   // Loop until the barometer is calibrated ###
   while(!calibrated){
-    Serial.println("#INFO: Calibrating barometer...");
-    String msg = Serial.readString();
+    Serial1.println("#INFO: Calibrating barometer...");
+    String msg = Serial1.readString();
     // String msg = "Initial_Altitude:X.XX";
     if (msg.startsWith("Initial_Altitude:"))
     {
-      initialAltitude = msg.substring(18).toFloat();
-      Serial.print("Initial altitude: ");
-      Serial.println(initialAltitude);
+      initialAltitude = msg.substring(17).toFloat();
+      Serial1.print("Initial altitude: ");
+      Serial1.println(initialAltitude);
       // Exit loop
       calibrated = true;
     }
     else
     {
-      Serial.println("Bad command - Initial altitude not set");
+      Serial1.println("Bad command - Initial altitude not set");
     }
   }
 
@@ -136,18 +136,18 @@ bool isFalling()
   } else if (currentAltitude < lastAltitude) {
     // The rocket is descending
 
-    Serial.println("Se detecta cambio de monotonía");
+    Serial1.println("Se detecta cambio de monotonía");
 
     monotonousChanges++;
     
-    Serial.print("Cambios de monotonía: ");
-    Serial.println(monotonousChanges);
+    Serial1.print("Cambios de monotonía: ");
+    Serial1.println(monotonousChanges);
 
     if (monotonousChanges == 3 && hasLiftedOff) {
       /*At least 3 consecutive changes in monotonicity have occurred, the rocket
        *has reached its apogee and started descending.
        */
-      Serial.println("Cohete descendiendo");
+      Serial1.println("Cohete descendiendo");
       return true;
     }
   }
@@ -167,64 +167,64 @@ void checkTelemetry()
   
   pressure = BARO.readPressure();
   temperatureBARO = BARO.readTemperature();
-  //Serial.print('$,');
-  Serial.print(pressure);
-  Serial.print(',');
-  Serial.print(temperatureBARO);
-  Serial.print(',');
+  //Serial1.print('$,');
+  Serial1.print(pressure);
+  Serial1.print(',');
+  Serial1.print(temperatureBARO);
+  Serial1.print(',');
   currentAltitude = 44330 * ( 1 - pow(pressure/initialPressure, 1/5.255) );
   temperature = HS300x.readTemperature();
   humidity = HS300x.readHumidity();
-  Serial.print(currentAltitude);
-  Serial.print(',');
-  Serial.print(temperature);
-  Serial.print(',');
-  Serial.print(humidity);
-  Serial.print(',');
+  Serial1.print(currentAltitude);
+  Serial1.print(',');
+  Serial1.print(temperature);
+  Serial1.print(',');
+  Serial1.print(humidity);
+  Serial1.print(',');
 
 
   if (IMU.gyroscopeAvailable()) {
     IMU.readGyroscope(Gx, Gy, Gz);
 
-    Serial.print(Gx);
-    Serial.print(',');
-    Serial.print(Gy);
-    Serial.print(',');
-    Serial.print(Gz);
-    Serial.print(',');
+    Serial1.print(Gx);
+    Serial1.print(',');
+    Serial1.print(Gy);
+    Serial1.print(',');
+    Serial1.print(Gz);
+    Serial1.print(',');
   } else {
-    Serial.println("#ERROR: Gyroscope not available!");
+    Serial1.println("#ERROR: Gyroscope not available!");
     errorF = true;
   }
 
   if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(Ax, Ay, Az);
 
-    Serial.print(Ax);
-    Serial.print(',');
-    Serial.print(Ay);
-    Serial.print(',');
-    Serial.print(Az);
-    Serial.print(',');
+    Serial1.print(Ax);
+    Serial1.print(',');
+    Serial1.print(Ay);
+    Serial1.print(',');
+    Serial1.print(Az);
+    Serial1.print(',');
   } else {
-    Serial.println("#ERROR: Accelerometer not available!");
+    Serial1.println("#ERROR: Accelerometer not available!");
     errorF = true;
   }
 
   if (IMU.magneticFieldAvailable()) {
     IMU.readMagneticField(Mx, My, Mz);
   } else {
-    Serial.println("#ERROR: Magnetometer not available!");
+    Serial1.println("#ERROR: Magnetometer not available!");
     errorF = true;
   }
     
-  Serial.print(Mx);
-  Serial.print(',');
-  Serial.print(My);
-  Serial.print(',');
-  Serial.print(Mz);
-  //Serial.println(',;');
-  Serial.println();
+  Serial1.print(Mx);
+  Serial1.print(',');
+  Serial1.print(My);
+  Serial1.print(',');
+  Serial1.print(Mz);
+  //Serial1.println(',;');
+  Serial1.println();
 }
 
 // Function to deploy the parachute
@@ -232,12 +232,12 @@ void checkDeployParachute()
 {
   if (isFalling() && hasLiftedOff)
   {
-    Serial.println("Desplegamos paracaídas!!");
+    Serial1.println("Desplegamos paracaidas!!");
     // Activate alert sound 
-    digitalWrite(alertPin, HIGH);
-    delay(3000);
+    //digitalWrite(alertPin, HIGH);
+    //delay(3000);
     // Deactivate alert sound 
-    digitalWrite(alertPin, LOW);
+    //digitalWrite(alertPin, LOW);
     
     // Deploy parachute
     digitalWrite(parachutePin, HIGH);
@@ -250,7 +250,7 @@ void checkDeployParachute()
   }
   else
   {
-    Serial.println("Subiendo o no hemos despegado");
+    Serial1.println("Subiendo o no hemos despegado");
   }
 }
 
@@ -259,16 +259,16 @@ void checkAltitude()
 {
   // Read pressure (kPa)
   float currentPressure = BARO.readPressure();
-  Serial.print("Presión (kPa): ");
-  Serial.println(currentPressure);
+  Serial1.print("Presión (kPa): ");
+  Serial1.println(currentPressure);
 
   // Update last altitude
   lastAltitude = currentAltitude;
 
   // Convert pressure to meters
   currentAltitude = 44330 * ( 1 - pow(currentPressure/initialPressure, 1/5.255) );
-  Serial.print("Altitud relativa (m): ");
-  Serial.println(currentAltitude);
+  Serial1.print("Altitud relativa (m): ");
+  Serial1.println(currentAltitude);
 
   // Check if the rocket has lifted off
   if(!hasLiftedOff && (currentAltitude > minAltitudeToDeployParachute)) {
@@ -289,34 +289,35 @@ void loop()
   if(startTime == 0){
     if (IMU.accelerationAvailable()) {
       IMU.readAcceleration(Ax, Ay, Az);
-      if (Ay > 5.0f){
+      if (Ay > 2.0f || Ay < -2.0f){
         startTime = millis();
+        Serial1.println("#INFO: Start timer!");
       }
     } else {
-      Serial.println("#ERROR: Accelerometer not available!");
+      Serial1.println("#ERROR: Accelerometer not available!");
       errorF = true;
     }
   }
 
   currentTime = millis();
   if ((currentTime - startTime) > timerLimit && startTime != 0){
-    Serial.println("Desplegamos paracaídas por timer!!");
+    Serial1.println("Desplegamos paracaídas por timer!!");
     // Activate alert sound 
-    digitalWrite(alertPin, HIGH);
-    delay(3000);
-    // Deactivate alert sound 
-    digitalWrite(alertPin, LOW);
+    //digitalWrite(alertPin, HIGH);
+    //delay(3000);
+    // Deactivate alert sound
+    //digitalWrite(alertPin, LOW);
     
     // Deploy parachute
     digitalWrite(parachutePin, HIGH);
 
     while(true){
       checkTelemetry();
-      delay(200);
+      delay(100);
     }
   }
 
-  // Delay to avoid overloading the serial port
+  // Delay to avoid overloading the Serial1 port
   // TODO: minimize delay
   delay(200);
 }
